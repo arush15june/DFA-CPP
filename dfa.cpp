@@ -100,8 +100,8 @@ class DFA {
     int f;
 
 public:
-    // DFA() {};
-    // DFA(StateDiagram graph, int init_state, int final_state) : state_diagram {graph}, q{init_state}, f{final_state} {}
+    DFA() {};
+    DFA(StateDiagram graph, int init_state, int final_state) : state_diagram {graph}, q{init_state}, f{final_state} {}
 
     bool execute(std::string input) {
         /*
