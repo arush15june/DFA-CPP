@@ -3,6 +3,7 @@
         - arush15june 25/03/2019
 */
 #include <iostream>
+#include <array>
 #include <vector>
 #include <utility>
 #include <string>
@@ -12,6 +13,7 @@
 #include <cctype>
 #include <locale>
 
+#define MAXVERT 1000
 
 struct StateDiagram {
     /*
@@ -27,8 +29,8 @@ struct StateDiagram {
     */
 
 
-    std::vector<std::vector<std::pair<int, int> > > states;
-    std::vector<int> degree;
+    std::array<std::vector<std::pair<int, int>>, MAXVERT+1> states;
+    std::array<int, MAXVERT+1> degree;
     int nvertices;
     int nedges;
 
@@ -56,9 +58,22 @@ struct StateDiagram {
             @param int weight: weight of edge
             @param int y: state no of edge
         */
-        std::pair<int, int> vertex = std::make_pair(weight, y);
+        
+        auto pair = std::make_pair(weight, y);
+        auto& state = states[state_no];
+        
+        state.push_back(pair);
+    }
 
-        states.at(state_no).push_back(vertex);
+    void printList() {
+        for(auto i = 1; i <= nvertices; i++) {
+            auto adjList = states[i];
+            std::cout<<i<<": ";
+            for (auto pair: adjList) {
+                std::cout<<pair.first<<" "<<pair.second<<" ";
+            }
+            std::cout<<std::endl;
+        }
     }
 };
 
@@ -114,16 +129,17 @@ public:
         for(char symbol: input) {
             auto symbol_val = int(symbol);
             auto curr_adj_list = state_diagram.getState(current_state);
-            
-            for(auto state: curr_adj_list) {
-                if(state.first == symbol_val) {
+
+            for(auto &state: curr_adj_list) {
+                if(state.first == symbol_val and state.second != current_state) {
                     current_state = state.second;
                     break;
                 }
             }
         }
 
-        if(current_state == final_state_reached) final_state_reached = true;
+
+        if(current_state == f) final_state_reached = true;
 
         return final_state_reached;
     }
@@ -236,6 +252,7 @@ DFA build_dfa_from_file(std::string filename) {
     std::ifstream state_file(filename);
     std::string str;
     int counter = 0;
+    int nvertices, nedges;
 
     while(std::getline(state_file, str)) {
         if(counter == 0) {
@@ -258,21 +275,29 @@ DFA build_dfa_from_file(std::string filename) {
                     - insert edge in state diagram.
             */
             auto split_at_colon = split(str, ':');
-            auto state = int((char(split_at_colon[0][0])));
+            auto state = std::stoi(split_at_colon[0]);
+
+            nvertices += 1;
             
             auto adj_list_vector = split(split_at_colon[1], '|');
-            for(auto pair: adj_list_vector) {
+            auto degree = 0;
+            for(auto &pair: adj_list_vector) {
                 auto trimmed_pair = trim_copy(pair);
                 auto split_pair = split(trimmed_pair, ' ');
                 
                 int weight = std::stoi(split_pair[0]);
                 int state_no_y = std::stoi(split_pair[1]);
-
+                
                 state_diagram.insertEdge(state, weight, state_no_y);
+                nedges += 1;
+                degree += 1;
             }
+            state_diagram.degree[state] = degree;
         }
         counter++;
     }
+    state_diagram.nvertices = nvertices;
+    state_diagram.nedges = nedges;
 
     dfa.setStateDiagram(state_diagram);
 
@@ -285,8 +310,10 @@ int main(int argc, char** argv) {
         std::cout<<"Invalid Input!"<<std::endl;
         std::cout<<"Usage: "<<std::endl;
         std::cout<<"./dfa <dfa_filename> <input_string>"<<std::endl;
+        
+        return 1;
     }
-    
+
     std::string dfa_filename = std::string(argv[1]);
     std::string input_string = std::string(argv[2]);
 
@@ -295,7 +322,7 @@ int main(int argc, char** argv) {
 
     auto evaluate = dfa.execute(input_string);
 
-    std::cout<<"Input: "<<input_string;
+    std::cout<<"Input: "<<input_string<<std::endl;
     if(evaluate) {
         std::cout<<"Evaluation: True"<<std::endl;
         return 0;
